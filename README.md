@@ -16,5 +16,8 @@ Wordpress Plugin that allows you to select the user roles for every site in a mu
 
 # Change log
 
+== 1.0.1 ==
+* add column "roles" to network users list
+
 == 1.0 ==
 * Initial Release.
