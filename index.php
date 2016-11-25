@@ -4,7 +4,7 @@ Plugin Name: WP User Role Register Multisite
 Plugin URI: https://github.com/mikiamomik/wp-user-role-register-multisite/
 Description: Wordpress Plugin that allows you to select the user roles for every site in a multisite Wordpress project.
 Author: Bernardo Picaro
-Version: 1.0
+Version: 1.0.1
 */
 
 function wurrm_form_multisite($type=null) {
@@ -63,7 +63,49 @@ function wurrm_registration_save( $user_id ) {
 		}
 	}
 }
+
+function wurrm_add_user_id_column($columns) {
+	if(isset($columns['blogs'])){
+		unset($columns['blogs']);
+	}
+    $columns['sites'] = __('Roles');
+    return $columns;
+}
+ 
+function wurrm_show_user_id_column_content($value, $column_name, $user_id) {
+    //$user = get_userdata( $user_id );
+    $sites_content=null;
+	if ( 'sites' == $column_name ){
+		$sites=get_sites();
+		foreach($sites as $site){
+			$get_users_obj = get_users(array('blog_id' => $site->blog_id,'search'  => $user_id));
+			if(isset($get_users_obj[0]->roles)){
+				$sites_content.="<span class=\"".$site->blog_id."\">";
+				$sites_content.="<a href=\"".network_admin_url("site-info.php?id=".$site->blog_id)."\">".$site->domain."</a>";
+				$sites_content.=" <small><a href=\"".network_admin_url("site-info.php?id=".$site->blog_id)."\">".strtoupper(__("Edit"))."</a></small>";
+				$sites_content.="<br>";
+				foreach($get_users_obj[0]->roles as $role){
+					$sites_content.="<span class='wurrm_role_user'>$role</span><br>";
+				}
+				$sites_content.="</span><br>";
+			}
+			
+		}
+		return $sites_content;
+	} 
+    return $value;
+}
+
+
+function wurrm_add_style_user_id() {
+    echo '<style>.wurrm_role_user:before{content: " - ";}</style>';
+}
+
 if ( is_multisite() ) { 
+	add_action('admin_footer', 'wurrm_add_style_user_id' );
+	add_filter('wpmu_users_columns', 'wurrm_add_user_id_column');
+	add_action('manage_users_custom_column',  'wurrm_show_user_id_column_content', 10, 3);
+
 	add_action('network_user_new_form', 'wurrm_form_multisite',10000,1);
 	add_action('network_user_new_created_user', 'wurrm_registration_save', 200000, 1 );
 
