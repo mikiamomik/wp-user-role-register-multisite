@@ -2,9 +2,9 @@
 
 Tags: user, register, roles, role, multisite
 
-Requires at least: 4.6.1
+Requires at least: 4.7.5
 
-Tested up to: 4.6.1
+Tested up to: 4.7.5
 
 # Description
 
@@ -16,6 +16,9 @@ Wordpress Plugin that allows you to select the user roles for every site in a mu
 
 # Change log
 
+
+== 1.2.0 ==
+* add composer.json
 
 == 1.1 ==
 * can edit roles in user profile page

@@ -4,7 +4,7 @@ Plugin Name: WP User Role Register Multisite
 Plugin URI: https://github.com/mikiamomik/wp-user-role-register-multisite/
 Description: Wordpress Plugin that allows you to select the user roles for every site in a multisite Wordpress project.
 Author: Bernardo Picaro
-Version: 1.1
+Version: 1.2.0
 */
 global $wurmm_saved;
 $wurmm_saved=false;
