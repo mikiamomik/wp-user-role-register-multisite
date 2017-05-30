@@ -1,5 +1,5 @@
 {
-  "name": "mp_revision",
+  "name": "wp-user-role-register-multisite",
   "description": "Wordpress Plugin that allows you to select the user roles for every site in a multisite Wordpress project.",
   "license":"MIT",
   "type": "wordpress-plugin",
