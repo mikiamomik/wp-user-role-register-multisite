@@ -4,7 +4,7 @@ Tags: user, register, roles, role, multisite
 
 Requires at least: 4.7.5
 
-Tested up to: 4.7.5
+Tested up to: 4.9.1
 
 # Description
 
@@ -16,6 +16,11 @@ Wordpress Plugin that allows you to select the user roles for every site in a mu
 
 # Change log
 
+
+== 1.3.0 ==
+* Edit only roles that current user can view
+* If user is not a super-admin cannot view form in his profile (only in network profile)
+* No form in user registration form
 
 == 1.2.1 ==
 * fix restore current blog

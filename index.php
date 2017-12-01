@@ -4,7 +4,7 @@ Plugin Name: WP User Role Register Multisite
 Plugin URI: https://github.com/mikiamomik/wp-user-role-register-multisite/
 Description: Wordpress Plugin that allows you to select the user roles for every site in a multisite Wordpress project.
 Author: Bernardo Picaro
-Version: 1.2.1
+Version: 1.3.0
 */
 global $wurmm_saved;
 $wurmm_saved=false;
@@ -12,6 +12,7 @@ function wurrm_form_multisite($type=null,$user=null,$is_network_profile=true) {
 	if($type=="add-existing-user"){ return false; } 
 	$is_editing=!empty($user);
 	$is_network=empty($type);
+	$is_current_user_profile=(isset($user->ID) && get_current_user_id()==$user->ID) && !is_super_admin() && !$is_network_profile;
 	$sites=get_sites(); 
 	global $wp_roles;
 
@@ -19,18 +20,14 @@ function wurrm_form_multisite($type=null,$user=null,$is_network_profile=true) {
     $editable_roles = apply_filters('editable_roles', $all_roles);
     $user_roles=array();
     foreach($editable_roles as $k=>$role){ $user_roles[$k]=$role['name'];}
-    ?>
-	<table class="form-table">
-		<tbody>
-			<?php if(!$is_network) { ?>
-			<tr class="form-field form-required">
-				<th colspan='1000'><?php echo __('Other Sites') ?></th>
-			</tr>
-			<?php }
-			foreach($sites as $site){
-				if(!$is_editing || ($is_editing && $is_network_profile) || ($is_editing && !$is_network_profile && get_current_blog_id()!=$site->blog_id)){
-					if($is_network || (!$is_network && get_current_blog_id()!=$site->blog_id)) {
-						?><tr class="form-field form-required"><?php
+
+	$selects=null;
+	if(!empty($sites) && !$is_current_user_profile){
+		foreach($sites as $site){
+			if(!$is_editing || ($is_editing && $is_network_profile) || ($is_editing && !$is_network_profile && get_current_blog_id()!=$site->blog_id)){
+				if($is_network || (!$is_network && get_current_blog_id()!=$site->blog_id)) {
+					if(is_super_admin() || (current_user_can_for_blog($site->blog_id,"manage_network_users") && current_user_can_for_blog($site->blog_id,"edit_users"))){
+						$selects.="<tr class=\"form-field form-required\">";
 						$domain=str_replace(".robadadonne.it",null,$site->domain);
 						$domain=str_replace(".rdd.it",null,$domain);
 						$domain=strtoupper($domain);
@@ -43,28 +40,41 @@ function wurrm_form_multisite($type=null,$user=null,$is_network_profile=true) {
 							}
 						}
 						$is_null_editing=(!$is_network || ($is_editing && empty($user->roles)));
-						echo "<th scope=\"row\">".__("Role")." ".$domain."</th>";
-						echo "<td>
+						$selects.="<th scope=\"row\">".__("Role")." ".$domain."</th>";
+						$selects.="<td>
 							  <select name=\"wurrm_site_enabled[".$site->blog_id."][]\" class='multiple' style='height: calc(18px * ".(count($user_roles)+1)."  + 6px)' multiple>";
-							  	echo "<option value='none' ".($is_null_editing?"selected":null).">".__("&mdash; No role for this site &mdash;")."</option>";
+							  	$selects.="<option value='none' ".($is_null_editing?"selected":null).">".__("&mdash; No role for this site &mdash;")."</option>";
 							    foreach($user_roles as $k=>$role){
 									$is_contributor_default=(!$is_editing && $is_network && $k=='contributor');
 									$is_roles_editing=($is_editing && in_array($k,$user->roles) );
-							    	echo "<option value=\"".$k."\" ".(($is_contributor_default || $is_roles_editing) ? "selected":null).">".__(ucfirst($role))."</option>";
+							    	$selects.="<option value=\"".$k."\" ".(($is_contributor_default || $is_roles_editing) ? "selected":null).">".__(ucfirst($role))."</option>";
 							    }
-						echo "</select>
-							  </td>";
-						?></tr><?php
+						$selects.="</select>
+							  </td>
+						</tr>";
 					}
 				}
-			} ?>
-		</tbody>
-	</table>
-	<style>
-		body table.form-table td select{width:100% !important;max-width: 25em !important;}
-		body table.form-table td select.multiple{height:100%;}
-	</style>
-	<?php
+			}
+		}
+	}
+	if(!empty($selects)){
+		wp_nonce_field( 'wurrm_user_profile_update', 'wurrm_nonce' );
+		echo "<h2 id=\"wordpress-wurrm\">". __( 'Roles' )."</h2>"; ?>
+		<table class="form-table">
+			<tbody>
+				<?php if(!$is_network) { ?>
+					<tr class="form-field form-required">
+						<th colspan='1000'><?php echo __('Other Sites') ?></th>
+					</tr>
+				<?php } ?>
+				<?php echo $selects; ?>
+			</tbody>
+		</table>
+		<style>
+			body table.form-table td select{width:100% !important;max-width: 25em !important;}
+			body table.form-table td select.multiple{height:100%;}
+		</style><?php
+	}
 }
 
 function wurrm_f_registration_save( $user_id ) {
@@ -110,16 +120,22 @@ function wurrm_show_user_id_column_content($value, $column_name, $user_id) {
 	if ( 'sites' == $column_name ){
 		$sites=get_sites();
 		foreach($sites as $site){
-			$get_users_obj = get_users(array('blog_id' => $site->blog_id,'search'  => $user_id));
-			if(isset($get_users_obj[0]->roles)){
-				$sites_content.="<span class=\"".$site->blog_id."\">";
-				$sites_content.="<a href=\"".network_admin_url("site-info.php?id=".$site->blog_id)."\">".$site->domain."</a>";
-				$sites_content.=" <small><a href=\"".network_admin_url("site-info.php?id=".$site->blog_id)."\">".strtoupper(__("Edit"))."</a></small>";
-				$sites_content.="<br>";
-				foreach($get_users_obj[0]->roles as $role){
-					$sites_content.="<span class='wurrm_role_user'>$role</span><br>";
+			if(is_super_admin() || (current_user_can_for_blog($site->blog_id,"manage_network_users") && current_user_can_for_blog($site->blog_id,"edit_users"))){
+				$get_users_obj = get_users(array('blog_id' => $site->blog_id,'search'  => $user_id));
+				if(isset($get_users_obj[0]->roles)){
+					$sites_content.="<span class=\"".$site->blog_id."\">";
+					$sites_content.="<a href=\"".network_admin_url("site-info.php?id=".$site->blog_id)."\">".$site->domain."</a>";
+					$sites_content.=" <small><a href=\"".network_admin_url("site-info.php?id=".$site->blog_id)."\">".strtoupper(__("Edit"))."</a></small>";
+					$sites_content.="<br>";
+					if(!empty($get_users_obj[0]->roles)){
+						foreach($get_users_obj[0]->roles as $role){
+							$sites_content.="<span class='wurrm_role_user'>$role</span><br>";
+						}
+					} else {
+						$sites_content.="<span class='wurrm_role_user'><b>No role yet!</b></span><br>";
+					}
+					$sites_content.="</span><br>";
 				}
-				$sites_content.="</span><br>";
 			}
 			
 		}
@@ -134,7 +150,7 @@ function wurrm_add_style_user_id() {
 
 function wurrm_load_admin_user_class() {
 	global $pagenow;
-	if ( in_array($pagenow, array( 'user-edit.php', 'profile.php' ) ) && current_user_can( 'edit_users' ) ) {
+	if ( in_array($pagenow, array( 'user-edit.php', 'profile.php' ) ) && (is_super_admin() || (current_user_can("manage_network_users") && current_user_can("edit_users"))) ) {
 		new wurrm_Admin_User_Profile;
 	}
 }
@@ -163,9 +179,9 @@ class wurrm_Admin_User_Profile {
 	}
 
 	public function user_profile( $user ) {
-		wp_nonce_field( 'wurrm_user_profile_update', 'wurrm_nonce' );
-		echo "<h2 id=\"wordpress-wurrm\">". __( 'Roles' )."</h2>";
-		wurrm_form_multisite(null,$user,is_network_admin());
+		if(is_super_admin() || (current_user_can("manage_network_users") && current_user_can("edit_users"))){
+			wurrm_form_multisite(null,$user,is_network_admin());
+		}
 	}
 }
 
@@ -175,9 +191,9 @@ if ( is_multisite() ) {
 	add_filter('wpmu_users_columns', 'wurrm_add_user_id_column');
 	add_action('manage_users_custom_column',  'wurrm_show_user_id_column_content', 10, 3);
 
-	add_action('network_user_new_form', 'wurrm_form_multisite',10000,1);
+	// add_action('network_user_new_form', 'wurrm_form_multisite',10000,1);
 	add_action('network_user_new_created_user', 'wurrm_f_registration_save', 200000, 1 );
 
-	add_action('user_new_form', 'wurrm_form_multisite',10000,1);
+	// add_action('user_new_form', 'wurrm_form_multisite',10000,1);
 	add_action('user_register', 'wurrm_f_registration_save', 200000, 1 );
 }
