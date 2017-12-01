@@ -17,6 +17,9 @@ Wordpress Plugin that allows you to select the user roles for every site in a mu
 # Change log
 
 
+== 1.2.1 ==
+* fix restore current blog
+
 == 1.2.0 ==
 * add composer.json
 

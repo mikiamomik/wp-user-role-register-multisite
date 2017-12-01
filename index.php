@@ -4,7 +4,7 @@ Plugin Name: WP User Role Register Multisite
 Plugin URI: https://github.com/mikiamomik/wp-user-role-register-multisite/
 Description: Wordpress Plugin that allows you to select the user roles for every site in a multisite Wordpress project.
 Author: Bernardo Picaro
-Version: 1.2.0
+Version: 1.2.1
 */
 global $wurmm_saved;
 $wurmm_saved=false;
@@ -24,7 +24,7 @@ function wurrm_form_multisite($type=null,$user=null,$is_network_profile=true) {
 		<tbody>
 			<?php if(!$is_network) { ?>
 			<tr class="form-field form-required">
-				<th colspan='1000'><?= __('Other Sites') ?></th>
+				<th colspan='1000'><?php echo __('Other Sites') ?></th>
 			</tr>
 			<?php }
 			foreach($sites as $site){
@@ -90,10 +90,10 @@ function wurrm_registration_save( $user_id ) {
 					$u->add_role($role);
 				}
 			}
+			restore_current_blog();
 		}
 		$wurmm_saved=true;
 	}
-	restore_current_blog();
 }
 
 function wurrm_add_user_id_column($columns) {
